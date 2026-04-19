@@ -1,5 +1,105 @@
 import json
 import os
+import tkinter as tk
+from tkinter import ttk
+
+class App:
+    def __init__(self, root, model):
+        self.model = model
+        self.root = root
+        self.updating = False
+
+        self.root.title("MVC Lab")
+
+        self.create_widgets()
+
+        # подписка на модель
+        self.model.subscribe(self.update_view)
+
+    def create_widgets(self):
+        # Заголовок
+        tk.Label(self.root, text="A <= B <= C", font=("Arial", 24)).grid(row=0, column=0, columnspan=3, pady=10)
+
+        self.entries = {}
+        self.spins = {}
+        self.scales = {}
+
+        for i, name in enumerate(["A", "B", "C"]):
+            col = i
+
+            # Буква A/B/C
+            tk.Label(self.root, text=name, font=("Arial", 16)).grid(row=1, column=col)
+
+            # Entry
+            entry = tk.Entry(self.root, justify="center")
+            entry.grid(row=2, column=col, padx=10, pady=5)
+            entry.bind("<FocusOut>", lambda e, n=name: self.on_entry(n))
+            self.entries[name] = entry
+
+            # Spinbox
+            spin = tk.Spinbox(self.root, from_=0, to=100, justify="center",
+                              command=lambda n=name: self.on_spin(n))
+            spin.grid(row=3, column=col, padx=10, pady=5)
+            self.spins[name] = spin
+
+            # Scale
+            scale = tk.Scale(self.root, from_=0, to=100,
+                             orient=tk.HORIZONTAL,
+                             command=lambda val, n=name: self.on_scale(n, val))
+            scale.grid(row=4, column=col, padx=10, pady=5)
+            self.scales[name] = scale
+
+    def on_entry(self, name):
+        if self.updating:
+            return
+
+        try:
+            value = int(self.entries[name].get())
+        except:
+            value = 0
+
+        self.set_model(name, value)
+
+    def on_spin(self, name):
+        if self.updating:
+            return
+
+        value = int(self.spins[name].get())
+        self.set_model(name, value)
+
+    def on_scale(self, name, value):
+        if self.updating:
+            return
+
+        self.set_model(name, int(value))
+
+    def set_model(self, name, value):
+        if name == "A":
+            self.model.set_a(value)
+        elif name == "B":
+            self.model.set_b(value)
+        elif name == "C":
+            self.model.set_c(value)
+
+    # -------------------- MODEL → UI --------------------
+
+    def update_view(self, a, b, c):
+        self.updating = True
+
+        values = {"A": a, "B": b, "C": c}
+
+        for name in ["A", "B", "C"]:
+            val = values[name]
+
+            self.entries[name].delete(0, tk.END)
+            self.entries[name].insert(0, str(val))
+
+            self.spins[name].delete(0, tk.END)
+            self.spins[name].insert(0, str(val))
+
+            self.scales[name].set(val)
+
+        self.updating = False
 
 class Model:
     def __init__(self):
@@ -99,7 +199,6 @@ class Model:
             self._notify()
 
         self._is_updating = False
-
     def _clamp(self, value):
         return max(0, min(100, int(value)))
 
@@ -126,3 +225,10 @@ m.subscribe(print_values)
 m.set_a(50)
 m.set_b(200)
 m.set_c(10)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    model = Model()
+    app = App(root, model)
+
+    root.mainloop()
