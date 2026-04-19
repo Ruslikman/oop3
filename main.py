@@ -39,7 +39,7 @@ class CCircle:
 class CircleStorage:
     def __init__(self):
         self._data = []      # приватное хранилище
-        self._index = 0      # для итерации
+        self._index = 0      # для итерацииb
 
     def add(self, circle):
         self._data.append(circle)
@@ -59,7 +59,6 @@ class CircleStorage:
             return self._data[self._index]
         return None
 
-    # --- дополнительные методы ---
     def remove_selected(self):
         self._data = [c for c in self._data if not c.is_selected()]
 
@@ -70,14 +69,18 @@ class CircleStorage:
     def get_all(self):
         return self._data
 
+    def find_at(self, x, y):
+        # ищем с конца (чтобы "верхний" круг выбирался первым)
+        for circle in reversed(self._data):
+            if circle.contains(x, y):
+                return circle
+        return None
+
 class Canvas(QWidget):
     def __init__(self):
         super().__init__()
         self.storage = CircleStorage()
 
-        # временно добавим пару кругов для проверки
-        self.storage.add(CCircle(100, 100))
-        self.storage.add(CCircle(200, 150))
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -88,7 +91,32 @@ class Canvas(QWidget):
             circle.draw(painter)
             self.storage.next()
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            x = int(event.position().x())
+            y = int(event.position().y())
 
+            clicked_circle = self.storage.find_at(x, y)
+
+            modifiers = event.modifiers()
+
+            if modifiers & Qt.KeyboardModifier.ControlModifier:
+                # Ctrl зажат → множественное выделение
+                if clicked_circle:
+                    clicked_circle.set_selected(
+                        not clicked_circle.is_selected()
+                    )
+            else:
+                # обычный клик (как в Windows)
+                self.storage.clear_selection()
+
+                if clicked_circle:
+                    clicked_circle.set_selected(True)
+                else:
+                    # если кликнули в пустое место → создаём новый круг
+                    self.storage.add(CCircle(x, y))
+
+            self.update()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
