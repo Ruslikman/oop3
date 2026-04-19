@@ -75,6 +75,13 @@ class CircleStorage:
                 return circle
         return None
 
+    def find_all_at(self, x, y):
+        result = []
+        for circle in self._data:
+            if circle.contains(x, y):
+                result.append(circle)
+        return result
+
 class Canvas(QWidget):
     def __init__(self):
         super().__init__()
@@ -94,21 +101,26 @@ class Canvas(QWidget):
             self.storage.next()
 
     def mousePressEvent(self, event):
+        self.setFocus()
+
         if event.button() == Qt.MouseButton.LeftButton:
             x = int(event.position().x())
             y = int(event.position().y())
 
-            clicked_circle = self.storage.find_at(x, y)
-
             modifiers = event.modifiers()
 
-            if modifiers & Qt.KeyboardModifier.ControlModifier: #ctrl
-                if clicked_circle:
-                    clicked_circle.set_selected(
-                        not clicked_circle.is_selected()
-                    )
+            # универсально: Ctrl (Win) или ⌘ (Mac)
+            multi_select = (modifiers & Qt.KeyboardModifier.ControlModifier)
+
+            if multi_select:
+                circles = self.storage.find_all_at(x, y)
+
+                for c in circles:
+                    c.set_selected(not c.is_selected())
+
             else:
-                # обычный клик
+                clicked_circle = self.storage.find_at(x, y)
+
                 self.storage.clear_selection()
 
                 if clicked_circle:
