@@ -36,15 +36,57 @@ class CCircle:
 
     def is_selected(self):
         return self.selected
+class CircleStorage:
+    def __init__(self):
+        self._data = []      # приватное хранилище
+        self._index = 0      # для итерации
+
+    def add(self, circle):
+        self._data.append(circle)
+
+    # --- итерация ---
+    def first(self):
+        self._index = 0
+
+    def next(self):
+        self._index += 1
+
+    def eol(self):
+        return self._index >= len(self._data)
+
+    def getObject(self):
+        if not self.eol():
+            return self._data[self._index]
+        return None
+
+    # --- дополнительные методы ---
+    def remove_selected(self):
+        self._data = [c for c in self._data if not c.is_selected()]
+
+    def clear_selection(self):
+        for c in self._data:
+            c.set_selected(False)
+
+    def get_all(self):
+        return self._data
 
 class Canvas(QWidget):
     def __init__(self):
         super().__init__()
-        self.circle = CCircle(100, 100)
+        self.storage = CircleStorage()
+
+        # временно добавим пару кругов для проверки
+        self.storage.add(CCircle(100, 100))
+        self.storage.add(CCircle(200, 150))
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        self.circle.draw(painter)
+
+        self.storage.first()
+        while not self.storage.eol():
+            circle = self.storage.getObject()
+            circle.draw(painter)
+            self.storage.next()
 
 
 class MainWindow(QMainWindow):
